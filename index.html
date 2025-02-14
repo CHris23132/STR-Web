@@ -1722,6 +1722,140 @@
           grid-template-columns: 1fr;
         }
       }
+
+      .track-record-section {
+        padding: 3rem 2rem;
+        background: linear-gradient(135deg, #2B4C7E 0%, #FF8C00 100%);
+        color: white;
+      }
+
+      .track-record-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .track-record-image {
+        position: relative;
+      }
+
+      .performance-graph {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        border: 3px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .track-record-content {
+        padding: 0.5rem;
+      }
+
+      .track-record-content h2 {
+        font-size: 2rem;
+        color: white;
+        margin-bottom: 0.5rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .highlight-text {
+        font-size: 1.25rem;
+        color: #FFD700;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+
+      .stats-highlight {
+        font-size: 1.25rem;
+        color: #98FB98;
+        margin-bottom: 0.5rem;
+      }
+
+      .achievement-points {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin: 0.5rem 0;
+      }
+
+      .achievement-number {
+        display: block;
+        font-size: 2rem;
+        color: #FFD700;
+        font-weight: bold;
+      }
+
+      .achievement-label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .track-record-description,
+      .track-record-benefits {
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .benefits-list {
+        margin-bottom: 0.75rem;
+      }
+
+      .benefits-list li {
+        margin-bottom: 0.25rem;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.9);
+        list-style-type: none;
+        position: relative;
+        padding-left: 1.5em;
+      }
+
+      .benefits-list li:before {
+        content: "★";
+        color: #FFD700;
+        position: absolute;
+        left: 0;
+      }
+
+      .track-record-cta {
+        background: #FFD700;
+        color: #2B4C7E;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .track-record-cta:hover {
+        background: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      @media (max-width: 768px) {
+        .track-record-container {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+        }
+
+        .track-record-content {
+          padding: 1rem 0;
+        }
+
+        .achievement-points {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -1860,6 +1994,49 @@
           <button class="plan-button side-hustle" onclick="location.href='#contact'">Start Free Trial</button>
           <button class="plan-button pro" onclick="location.href='#contact'">Get Started</button>
           <button class="plan-button multiunit" onclick="location.href='#contact'">Contact Sales</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Add this section after the comparison chart and before the services overview -->
+    <section class="track-record-section">
+      <div class="track-record-container">
+        <div class="track-record-image">
+          <img src="images/graphic.png" alt="STR Solutions Performance Graph" class="performance-graph">
+        </div>
+        <div class="track-record-content">
+          <h2>20 Years of Proven Excellence</h2>
+          <p class="highlight-text">Transforming Properties into Profit Centers</p>
+          <p class="stats-highlight">Average increase of 47% in booking revenue</p>
+          <div class="achievement-points">
+            <div class="achievement">
+              <span class="achievement-number">20+</span>
+              <span class="achievement-label">Years Experience</span>
+            </div>
+            <div class="achievement">
+              <span class="achievement-number">1000+</span>
+              <span class="achievement-label">Properties Optimized</span>
+            </div>
+            <div class="achievement">
+              <span class="achievement-number">95%</span>
+              <span class="achievement-label">Client Satisfaction</span>
+            </div>
+          </div>
+          <p class="track-record-description">
+            Since 2003, STR Solutions has been the driving force behind successful vacation rental properties across North America. Our proven methodology combines cutting-edge technology with decades of market expertise to maximize your property's potential.
+          </p>
+          <p class="track-record-benefits">
+            We don't just manage properties – we transform them into high-performing investments. Our comprehensive approach includes dynamic pricing strategies, targeted marketing campaigns, and exceptional guest services that consistently deliver:
+          </p>
+          <ul class="benefits-list">
+            <li>Higher occupancy rates year-round</li>
+            <li>Premium pricing optimization</li>
+            <li>Increased repeat bookings</li>
+            <li>Enhanced property visibility across all major platforms</li>
+          </ul>
+          <button class="track-record-cta" onclick="location.href='https://calendly.com/strsolutionsinc/introductory-meeting'">
+            Schedule Your Free Revenue Analysis
+          </button>
         </div>
       </div>
     </section>
