@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hostfully Property Form</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Form-specific styles */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .hero-image {
+      max-width: 300px;
+      height: auto;
+    }
+
+    .form-section {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .form-section h2 {
+      color: #2c3e50;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 0.5rem;
+    }
+
+    .field {
+      margin-bottom: 1rem;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #495057;
+      font-weight: 500;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .time-picker-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .time-picker {
+      position: relative;
+    }
+
+    .time-display {
+      padding: 0.75rem;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .time-slots {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    .time-slots.active {
+      display: block;
+    }
+
+    .time-slot {
+      padding: 0.5rem;
+      cursor: pointer;
+    }
+
+    .time-slot:hover {
+      background: #f8f9fa;
+    }
+
+    .time-slot.selected {
+      background: #007bff;
+      color: #fff;
+    }
+
+    .submit-btn {
+      display: block;
+      width: 100%;
+      padding: 1rem;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .submit-btn:hover {
+      background: #0056b3;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+      
+      .time-picker-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <img src="images/str-solutions-by-smart-stays-intl-high-resolution-logo-transparent.png" alt="Hero background" class="hero-image">
+  </div>
+  
+  <div class="container">
+    <h1>Submit Property Information</h1>
+    <form id="propertyForm">
+      <div class="form-section">
+        <h2>Basic Information</h2>
+        <div class="field">
+          <label for="agencyUid">Agency UID</label>
+          <input type="text" id="agencyUid" required 
+                 value="b87d17a1-5eb0-445d-8d3b-2b7bde5d6b30" />
+        </div>
+
+        <div class="field">
+          <label for="externalId">External ID (Optional)</label>
+          <input type="text" id="externalId" />
+        </div>
+
+        <div class="field">
+          <label for="name">Property Name</label>
+          <input type="text" id="name" required />
+        </div>
+
+        <div class="field">
+          <label for="description">Description</label>
+          <textarea id="description" rows="3" required></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Location</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="line1">Address Line 1</label>
+            <input type="text" id="line1" required />
+          </div>
+          <div class="field">
+            <label for="line2">Address Line 2</label>
+            <input type="text" id="line2" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="city">City</label>
+          <input type="text" id="city" required />
+        </div>
+        <div class="field">
+          <label for="state">State/Province</label>
+          <input type="text" id="state" required />
+        </div>
+        <div class="field">
+          <label for="postalCode">Postal/Zip Code</label>
+          <input type="text" id="postalCode" required />
+        </div>
+
+        <div class="field">
+          <label for="country">Country Code</label>
+          <select id="country" required>
+            <option value="">--Select--</option>
+            <option value="US">United States (US)</option>
+            <option value="CA">Canada (CA)</option>
+            <option value="GB">United Kingdom (GB)</option>
+            <option value="AU">Australia (AU)</option>
+            <option value="FR">France (FR)</option>
+            <!-- Add more as needed -->
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="longitude">Longitude</label>
+          <input type="number" id="longitude" step="any" required />
+        </div>
+        <div class="field">
+          <label for="latitude">Latitude</label>
+          <input type="number" id="latitude" step="any" required />
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Availability</h2>
+        <div class="field">
+          <label for="baseGuests">Base Guests</label>
+          <input type="number" id="baseGuests" min="1" required />
+        </div>
+        <div class="field">
+          <label for="maxGuests">Max Guests</label>
+          <input type="number" id="maxGuests" min="1" required />
+        </div>
+        <div class="field">
+          <label for="minimumStay">Minimum Stay (days)</label>
+          <input type="number" id="minimumStay" min="1" required />
+        </div>
+        <div class="field">
+          <label for="maximumStay">Maximum Stay (days)</label>
+          <input type="number" id="maximumStay" min="1" required />
+        </div>
+
+        <div class="time-picker-container">
+          <div class="field">
+            <label for="checkInTimeStart">Check-In Time Start</label>
+            <div class="time-picker">
+              <div class="time-display" id="checkInTimeStart-display">14:00</div>
+              <input type="hidden" id="checkInTimeStart" value="14" />
+              <div class="time-slots">
+                <div class="time-column">
+                  <!-- Time slots will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="checkInTimeEnd">Check-In Time End</label>
+            <div class="time-picker">
+              <div class="time-display" id="checkInTimeEnd-display">20:00</div>
+              <input type="hidden" id="checkInTimeEnd" value="20" />
+              <div class="time-slots">
+                <div class="time-column">
+                  <!-- Time slots will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="checkOutTime">Check-Out Time</label>
+            <div class="time-picker">
+              <div class="time-display" id="checkOutTime-display">11:00</div>
+              <input type="hidden" id="checkOutTime" value="11" />
+              <div class="time-slots">
+                <div class="time-column">
+                  <!-- Time slots will be populated by JavaScript -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Pricing</h2>
+        <div class="field">
+          <label for="currency">Currency</label>
+          <select id="currency" required>
+            <option value="USD">USD</option>
+            <option value="CAD">CAD</option
+            <option value="GBP">GBP</option>
+            <option value="EUR">EUR</option>
+            <!-- Add more as needed -->
+          </select>
+        </div>
+        <div class="field">
+          <label for="dailyRate">Daily Rate</label>
+          <input type="number" id="dailyRate" step="0.01" min="0" required />
+        </div>
+        <div class="field">
+          <label for="taxRate">Tax Rate (%)</label>
+          <input type="number" id="taxRate" step="0.01" min="0" required />
+        </div>
+        <div class="field">
+          <label for="cleaningFee">Cleaning Fee</label>
+          <input type="number" id="cleaningFee" step="0.01" min="0" required />
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Property Details</h2>
+        <div class="field">
+          <label for="propertyType">Property Type</label>
+          <select id="propertyType" required>
+            <option value="">--Select--</option>
+            <option value="HOUSE">House</option>
+            <option value="TINY_HOUSE">Tiny House</option>
+            <option value="DORM">Dorm</option
+            <option value="FARMHOUSE">Farmhouse</option>
+            <option value="CABIN">Cabin</option>
+            <option value="VILLA">Villa</option>
+            <!-- Add more valid options here -->
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="listingType">Listing Type</label>
+          <select id="listingType" required>
+            <option value="">--Select--</option>
+            <option value="ENTIREHOME">Entire Home</option>
+            <option value="PRIVATEROOM">Private Room</option>
+            <option value="HOTELROOM">Hotel Room</option>
+            <option value="SHAREDROOM">Shared Room</option>
+            <!-- Add more as per Hostfully's allowed values -->
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="roomType">Room Type</label>
+          <select id="roomType" required>
+            <option value="">--Select--</option>
+            <option value="ENTIREHOME">Entire Home</option>
+            <option value="PRIVATEROOM">Private Room</option>
+            <option value="HOTELROOM">Hotel Room</option>
+            <option value="SHAREDROOM">Shared Room</option>
+            <!-- Add more from Hostfully's allowed values -->
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="isActive">Is Active?</label>
+          <select id="isActive" required>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="bedrooms">Number of Bedrooms</label>
+          <input type="number" id="bedrooms" min="0" required />
+        </div>
+        <div class="field">
+          <label for="beds">Number of Beds</label>
+          <input type="number" id="beds" min="0" required />
+        </div>
+        <div class="field">
+          <label for="bathrooms">Number of Bathrooms</label>
+          <input type="number" id="bathrooms" step="0.1" min="0" required />
+        </div>
+        <div class="field">
+          <label for="numberOfFloors">Number of Floors</label>
+          <input type="number" id="numberOfFloors" min="0" required />
+        </div>
+
+        <div class="field">
+          <label for="areaSize">Area Size</label>
+          <input type="number" id="areaSize" step="0.1" min="0" required />
+        </div>
+        <div class="field">
+          <label for="areaUnitType">Area Unit Type</label>
+          <select id="areaUnitType" required>
+            <option value="">--Select--</option>
+            <option value="sqft">Square Feet (sqft)</option>
+            <option value="sqm">Square Meters (sqm)</option>
+            <!-- Add more as needed -->
+          </select>
+        </div>
+      </div>
+
+      <button type="button" class="submit-btn">Submit</button>
+    </form>
+  </div>
+
+  <!-- Firebase scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script>
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSy...",
+      authDomain: "smartstayfirebase.firebaseapp.com",
+      projectId: "smartstayfirebase",
+      storageBucket: "smartstayfirebase.appspot.com",
+      messagingSenderId: "1003958242334",
+      appId: "1:1003958242334:web:14cbba09831d164a55320f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    document.querySelector('.submit-btn').onclick = async function submitForm() {
+      // Basic validation
+      const requiredFields = ['agencyUid', 'name', 'description', 'line1', 'city', 'state', 'postalCode', 'country', 'longitude', 'latitude', 'baseGuests', 'maxGuests', 'minimumStay', 'maximumStay', 'checkInTimeStart', 'checkInTimeEnd', 'checkOutTime', 'currency', 'dailyRate', 'taxRate', 'cleaningFee', 'propertyType', 'listingType', 'roomType', 'isActive', 'bedrooms', 'beds', 'bathrooms', 'numberOfFloors', 'areaSize', 'areaUnitType'];
+      for (let field of requiredFields) {
+        const value = document.getElementById(field).value;
+        if (!value && field !== 'externalId') {
+          alert(`Please fill out the ${field} field.`);
+          return;
+        }
+      }
+
+      const formData = {
+        agencyUid: document.getElementById('agencyUid').value,
+        externalId: document.getElementById('externalId').value || null,
+        name: document.getElementById('name').value.trim(),
+        description: document.getElementById('description').value.trim(),
+
+        address: {
+          line1: document.getElementById('line1').value.trim(),
+          line2: document.getElementById('line2').value.trim() || "",
+          city: document.getElementById('city').value.trim(),
+          state: document.getElementById('state').value.trim(),
+          postalCode: document.getElementById('postalCode').value.trim(),
+          country: document.getElementById('country').value.trim(), // e.g., "CA"
+          latitude: parseFloat(document.getElementById('latitude').value),
+          longitude: parseFloat(document.getElementById('longitude').value),
+        },
+
+        availability: {
+          baseGuests: parseInt(document.getElementById('baseGuests').value, 10),
+          maxGuests: parseInt(document.getElementById('maxGuests').value, 10),
+          minimumStay: parseInt(document.getElementById('minimumStay').value, 10),
+          maximumStay: parseInt(document.getElementById('maximumStay').value, 10),
+          checkInTimeStart: parseInt(document.getElementById('checkInTimeStart').value, 10),
+          checkInTimeEnd: parseInt(document.getElementById('checkInTimeEnd').value, 10),
+          checkOutTime: parseInt(document.getElementById('checkOutTime').value, 10)
+        },
+
+        pricing: {
+          currency: document.getElementById('currency').value.trim(),
+          dailyRate: parseFloat(document.getElementById('dailyRate').value),
+          taxRate: parseFloat(document.getElementById('taxRate').value),
+          cleaningFee: parseFloat(document.getElementById('cleaningFee').value),
+        },
+
+        propertyType: document.getElementById('propertyType').value,
+        listingType: document.getElementById('listingType').value,
+        roomType: document.getElementById('roomType').value,
+        isActive: (document.getElementById('isActive').value === "true"),
+
+        bedrooms: parseInt(document.getElementById('bedrooms').value, 10),
+        beds: parseInt(document.getElementById('beds').value, 10),
+        bathrooms: parseFloat(document.getElementById('bathrooms').value),
+        numberOfFloors: parseInt(document.getElementById('numberOfFloors').value, 10),
+
+        area: {
+          size: parseFloat(document.getElementById('areaSize').value),
+          unitType: document.getElementById('areaUnitType').value
+        }
+      };
+
+      try {
+        // Send to Firestore (leads collection)
+        await db.collection("leads").add(formData);
+        alert("Property submitted successfully!");
+        document.getElementById('propertyForm').reset();
+      } catch (error) {
+        console.error("Error submitting property:", error);
+        alert("There was an error submitting the property. Please try again.");
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize time pickers
+      const timePickerIds = ['checkInTimeStart', 'checkInTimeEnd', 'checkOutTime'];
+      
+      timePickerIds.forEach(id => {
+        const display = document.getElementById(`${id}-display`);
+        const input = document.getElementById(id);
+        const picker = display.closest('.time-picker');
+        const slots = picker.querySelector('.time-slots');
+        const column = picker.querySelector('.time-column');
+        
+        // Generate time slots
+        for (let i = 0; i < 24; i++) {
+          const timeSlot = document.createElement('div');
+          timeSlot.className = 'time-slot';
+          timeSlot.textContent = `${String(i).padStart(2, '0')}:00`;
+          timeSlot.dataset.value = i;
+          
+          if (i === parseInt(input.value)) {
+            timeSlot.classList.add('selected');
+          }
+          
+          timeSlot.addEventListener('click', () => {
+            input.value = i;
+            display.textContent = `${String(i).padStart(2, '0')}:00`;
+            slots.classList.remove('active');
+            
+            // Update selected state
+            picker.querySelectorAll('.time-slot').forEach(slot => {
+              slot.classList.remove('selected');
+            });
+            timeSlot.classList.add('selected');
+          });
+          
+          column.appendChild(timeSlot);
+        }
+        
+        // Toggle time slots visibility
+        display.addEventListener('click', (e) => {
+          e.stopPropagation();
+          timePickerIds.forEach(otherId => {
+            if (otherId !== id) {
+              document.querySelector(`#${otherId}-display`)
+                .closest('.time-picker')
+                .querySelector('.time-slots')
+                .classList.remove('active');
+            }
+          });
+          slots.classList.toggle('active');
+        });
+      });
+      
+      // Close time pickers when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.time-picker')) {
+          document.querySelectorAll('.time-slots').forEach(slots => {
+            slots.classList.remove('active');
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

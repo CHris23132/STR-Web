@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard - ISTR Solutions</title>
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-analytics.js";
+        import { 
+            getAuth, 
+            signInWithPopup, 
+            GoogleAuthProvider, 
+            onAuthStateChanged,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword,
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            sendPasswordResetEmail
+        } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDJaWXTmFRq5TOff-4ppA_2xbRIIqgH4U",
+            authDomain: "str-client-portal.firebaseapp.com",
+            projectId: "str-client-portal",
+            storageBucket: "str-client-portal.firebasestorage.app",
+            messagingSenderId: "326303222389",
+            appId: "1:326303222389:web:9f0fdd8c7172d1f292c63c",
+            measurementId: "G-PEE007ZG94"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // Handle authentication state changes
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log('User is signed in:', user.email);
+                showSuccessNotification('Successfully logged in as ' + user.email);
+                updateUIForLoggedInUser(user);
+            } else {
+                console.log('User is signed out');
+                updateUIForLoggedOutUser();
+            }
+        });
+
+        // Email/Password Login
+        window.handleEmailLogin = function() {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            
+            if (!email || !password) {
+                showErrorNotification('Please enter both email and password');
+                return;
+            }
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    localStorage.setItem('userEmail', email);
+                    showSuccessNotification('Successfully logged in!');
+                    toggleLoginPanel();
+                })
+                .catch((error) => {
+                    console.error('Email login error:', error);
+                    showErrorNotification('Login failed. Please check your credentials.');
+                });
+        }
+
+        // Email/Password Sign Up
+        window.handleEmailSignup = function() {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            
+            if (!email || !password) {
+                showErrorNotification('Please enter both email and password');
+                return;
+            }
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    localStorage.setItem('userEmail', email);
+                    showSuccessNotification('Account created successfully!');
+                    toggleLoginPanel();
+                })
+                .catch((error) => {
+                    console.error('Signup error:', error);
+                    showErrorNotification('Signup failed. ' + error.message);
+                });
+        }
+
+        // Google Authentication
+        window.handleGoogleAuth = async function() {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                
+                localStorage.setItem('userEmail', user.email);
+                localStorage.setItem('userName', user.displayName);
+                localStorage.setItem('userPhoto', user.photoURL);
+                
+                showSuccessNotification('Successfully logged in with Google!');
+                toggleLoginPanel();
+                
+                analytics.logEvent('login', {
+                    method: 'google'
+                });
+            } catch (error) {
+                console.error('Google auth error:', error);
+                showErrorNotification('Google login failed: ' + error.message);
+            }
+        };
+
+        // Sign Out
+        window.signOut = async function() {
+            try {
+                await auth.signOut();
+                localStorage.clear();
+                showSuccessNotification('Successfully logged out');
+                updateUIForLoggedOutUser();
+            } catch (error) {
+                console.error('Sign out error:', error);
+                showErrorNotification('Error signing out');
+            }
+        };
+
+        // UI Updates
+        function updateUIForLoggedInUser(user) {
+            const loginBubble = document.querySelector('.login-bubble');
+            if (loginBubble) {
+                loginBubble.innerHTML = `
+                    <img src="${user.photoURL || 'images/default-avatar.png'}" 
+                         alt="Profile" 
+                         style="width: 40px; height: 40px; border-radius: 50%; margin-bottom: 5px;">
+                    <span>Welcome, ${user.displayName || user.email}</span>
+                    <button onclick="signOut()" 
+                            style="margin-top: 5px; padding: 5px 10px; 
+                                   background: #FF8C00; border: none; 
+                                   color: white; border-radius: 4px; 
+                                   cursor: pointer;">
+                        Sign Out
+                    </button>
+                `;
+            }
+
+            document.querySelectorAll('.requires-auth').forEach(el => {
+                el.style.display = 'block';
+            });
+        }
+
+        function updateUIForLoggedOutUser() {
+            const loginBubble = document.querySelector('.login-bubble');
+            if (loginBubble) {
+                loginBubble.innerHTML = `
+                    <img src="images/use-icon.png" alt="User Icon">
+                    <span>Login/Signup</span>
+                    <span>Chat/Support</span>
+                `;
+            }
+
+            document.querySelectorAll('.requires-auth').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+
+        // Initialize UI based on auth state
+        const initialUser = auth.currentUser;
+        if (initialUser) {
+            updateUIForLoggedInUser(initialUser);
+        } else {
+            updateUIForLoggedOutUser();
+        }
+
+        // Make functions available to window object
+        window.showSuccessNotification = showSuccessNotification;
+        window.showErrorNotification = showErrorNotification;
+        window.toggleLoginPanel = toggleLoginPanel;
+
+        window.handleForgotPassword = function() {
+            const email = document.getElementById('loginEmailInput').value;
+            
+            if (!email) {
+                showErrorNotification('Please enter your email address');
+                return;
+            }
+
+            const auth = getAuth();
+            sendPasswordResetEmail(auth, email)
+                .then(() => {
+                    showSuccessNotification('Password reset email sent! Please check your inbox.');
+                })
+                .catch((error) => {
+                    console.error('Password reset error:', error);
+                    showErrorNotification('Failed to send reset email. ' + error.message);
+                });
+        }
+    </script>
+
+    <style media="screen">
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Roboto, Helvetica, Arial, sans-serif;
+        background-color: #ECEFF1;
+        line-height: 1.6;
+      }
+
+      .top-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        z-index: 1000;
+        transition: all 0.3s ease;
+      }
+
+      .top-nav.scrolled {
+        padding: 0.8rem 2rem;
+        background: rgba(255, 255, 255, 0.98);
+      }
+
+      .logo {
+        width: 120px;
+        height: auto;
+        transition: all 0.3s ease;
+      }
+
+      .logo.scrolled {
+        width: 100px;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .nav-link {
+        color: #2B4C7E;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #FF8C00;
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover::after {
+        width: 100%;
+      }
+
+      .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+      }
+
+      .mobile-menu-btn span {
+        display: block;
+        width: 24px;
+        height: 2px;
+        background: #2B4C7E;
+        margin: 5px 0;
+        transition: all 0.3s ease;
+      }
+
+      .mobile-menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 80%;
+        max-width: 400px;
+        height: 100vh;
+        background: white;
+        padding: 2rem;
+        box-shadow: -5px 0 30px rgba(0,0,0,0.1);
+        transition: right 0.3s ease;
+        z-index: 1001;
+      }
+
+      .mobile-menu.active {
+        right: 0;
+      }
+
+      .mobile-menu-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #2B4C7E;
+        cursor: pointer;
+      }
+
+      .mobile-nav-links {
+        margin-top: 3rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .mobile-nav-link {
+        color: #2B4C7E;
+        text-decoration: none;
+        font-size: 1.2rem;
+        font-weight: 500;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+
+        .mobile-menu-btn {
+          display: block;
+        }
+
+        .mobile-menu {
+          display: block;
+        }
+
+        .top-nav {
+          padding: 0.8rem 1rem;
+        }
+
+        .logo {
+          width: 100px;
+        }
+      }
+
+      .header {
+        position: relative;
+        min-height: 50vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        padding: 0;
+        z-index: 1;
+        margin-top: 70px;
+        background: linear-gradient(135deg, #2B4C7E 0%, #FF8C00 100%);
+      }
+
+      .header-title {
+        text-align: center;
+        padding: 20px 40px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(4px);
+        border-radius: 12px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        width: 90%;
+        max-width: 800px;
+      }
+
+      .header-title h1 {
+        margin: 0;
+        font-size: clamp(2rem, 8vw, 5rem);
+        font-weight: 800;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: clamp(2px, 1vw, 4px);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        white-space: normal;
+        line-height: 1.2;
+      }
+
+      .header-content {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        max-width: 1200px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .left-section {
+        z-index: 2;
+      }
+
+      .auth-section {
+        display: none;
+      }
+
+      .auth-divider {
+        color: rgba(255, 255, 255, 0.8);
+        text-align: center;
+        font-size: 0.9rem;
+        margin: 4px 0;
+      }
+
+      .google-auth-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: white;
+        color: #333;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+      }
+
+      .google-auth-button:hover {
+        background: #f5f5f5;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      .google-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .signup-link {
+        color: white;
+        text-decoration: underline;
+        font-size: 0.9rem;
+        cursor: pointer;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        text-align: center;
+      }
+
+      .signup-link:hover {
+        opacity: 1;
+      }
+
+      .go-button {
+        background: #FF8C00;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+      }
+
+      .go-button:hover {
+        background: #e67e00;
+        transform: translateY(-2px);
+      }
+
+      .hero-section {
+        text-align: left;
+        padding: 2rem 2rem;
+        background: white;
+        margin-bottom: 1rem;
+      }
+
+      .split-container {
+        display: flex;
+        gap: 4rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .content-left {
+        flex: 1;
+        padding-right: 2rem;
+      }
+
+      .content-right {
+        flex: 1;
+      }
+
+      .hero-title {
+        font-size: 2.2rem;
+        color: #333;
+        margin-bottom: 1rem;
+        text-align: left;
+      }
+
+      .hero-text {
+        font-size: 1rem;
+        color: #666;
+        line-height: 1.7;
+        text-align: left;
+      }
+
+      .platform-heading {
+        font-size: 2.5rem;
+        color: #333;
+        text-align: center;
+        margin: 1rem auto 2rem;
+        font-weight: bold;
+        max-width: 800px;
+      }
+
+      .testimonials-heading {
+        font-size: 2.8rem;
+        color: #333;
+        text-align: center;
+        margin: 2rem auto 1rem;
+        font-weight: bold;
+        max-width: 1000px;
+      }
+
+      .testimonials-image {
+        max-width: 1000px;
+        width: 100%;
+        height: auto;
+        margin: 1rem auto;
+        display: block;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+
+      .hero-image {
+        max-width: 800px;
+        width: 100%;
+        height: auto;
+        margin: 2rem auto;
+        display: block;
+      }
+
+      .secondary-image {
+        max-width: 800px;
+        width: 100%;
+        height: auto;
+        margin: 2rem auto 4rem;
+        display: block;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+
+      /* Contact form styles */
+      .contact-form {
+        background: #fff;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      .contact-form h3 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #495057;
+        font-weight: 500;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 1rem;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #ff8c00;
+        box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.25);
+      }
+
+      .submit-button {
+        width: 100%;
+        padding: 1rem;
+        background: #ff8c00;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        margin-top: 1rem;
+      }
+
+      .submit-button:hover {
+        background: #e67e00;
+      }
+
+      .platforms-section {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: #f5f5f5;
+      }
+
+      .platforms-title {
+        font-size: 2rem;
+        color: #333;
+        margin-bottom: 2rem;
+      }
+
+      .platform-logos {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .platform-logo {
+        width: 120px;
+        height: auto;
+        opacity: 0.7;
+        transition: opacity 0.3s;
+      }
+
+      .platform-logo:hover {
+        opacity: 1;
+      }
+
+      .cta-button {
+        display: inline-block;
+        background: #ff8c00;
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 4px;
+        text-decoration: none;
+        margin-top: 2rem;
+        font-weight: bold;
+        transition: background-color 0.3s;
+      }
+
+      .cta-button:hover {
+        background: #e67e00;
+      }
+
+      @media (max-width: 1024px) {
+        .split-container {
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        .content-left {
+          padding-right: 0;
+        }
+      }
+
+      .cta-section {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(to right, #f8f9fa, #e9ecef);
+        margin: 4rem auto;
+        border-radius: 12px;
+        max-width: 1000px;
+      }
+
+      .cta-heading {
+        font-size: 2.5rem;
+        color: #333;
+        margin-bottom: 1.5rem;
+        font-weight: bold;
+      }
+
+      .cta-text {
+        font-size: 1.2rem;
+        color: #666;
+        max-width: 800px;
+        margin: 0 auto 2rem;
+        line-height: 1.8;
+      }
+
+      .book-call-button {
+        display: inline-block;
+        background: #FF8C00;
+        color: white;
+        padding: 1.2rem 3rem;
+        border-radius: 8px;
+        font-size: 1.3rem;
+        text-decoration: none;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
+
+      .book-call-button:hover {
+        background: #e67e00;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+      }
+
+      .notification-popup {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #FF8C00;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 1000;
+        display: none;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      .login-chat-window {
+        position: fixed;
+        right: 30px;
+        bottom: 30px;
+        width: 360px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+        display: none;
+        z-index: 1000;
+        overflow: hidden;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      .chat-header {
+        background: #2B4C7E;
+        color: white;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+      }
+
+      .chat-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 500;
+      }
+
+      .close-button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+      }
+
+      .close-button:hover {
+        opacity: 1;
+      }
+
+      .chat-body {
+        padding: 24px;
+        background: #f8f9fa;
+      }
+
+      .chat-message {
+        margin-bottom: 20px;
+      }
+
+      .message-bubble {
+        background: #2B4C7E;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 18px;
+        border-top-left-radius: 4px;
+        display: inline-block;
+        font-size: 0.95rem;
+        max-width: 80%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      .login-options {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      }
+
+      .google-login-button {
+        width: 100%;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      }
+
+      .google-login-button img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+      }
+
+      .google-login-button:hover {
+        transform: translateY(-2px);
+      }
+
+      .divider {
+        text-align: center;
+        position: relative;
+        margin: 16px 0;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 45%;
+        height: 1px;
+        background: #ddd;
+      }
+
+      .divider::before {
+        left: 0;
+      }
+
+      .divider::after {
+        right: 0;
+      }
+
+      .divider span {
+        background: white;
+        padding: 0 10px;
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .email-login {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .email-login input {
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+      }
+
+      .email-login input:focus {
+        outline: none;
+        border-color: #2B4C7E;
+      }
+
+      .email-submit {
+        background: #FF8C00;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+
+      .email-submit:hover {
+        background: #e67e00;
+        transform: translateY(-1px);
+      }
+
+      .login-trigger {
+        background: transparent;
+        border: 1px solid white;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .login-trigger:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .login-chat-window {
+          right: 16px;
+          left: 16px;
+          width: auto;
+          bottom: 16px;
+        }
+      }
+
+      .login-bubble {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #FF8C00;
+        color: white;
+        padding: 20px;
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        text-align: center;
+        font-weight: 500;
+      }
+
+      .login-bubble:hover {
+        transform: scale(1.05);
+      }
+
+      .login-bubble img {
+        width: 32px;
+        height: 32px;
+        margin-bottom: 8px;
+        object-fit: contain;
+      }
+
+      .login-panel {
+        position: fixed;
+        top: 0;
+        right: -400px;
+        width: 400px;
+        height: 100vh;
+        background: white;
+        box-shadow: -4px 0 24px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        z-index: 1001;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .login-panel.active {
+        right: 0;
+      }
+
+      .login-panel-header {
+        padding: 20px;
+        background: #2B4C7E;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .login-panel-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 500;
+      }
+
+      .close-button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.2s;
+      }
+
+      .close-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .login-panel-content {
+        padding: 30px;
+        overflow-y: auto;
+        flex-grow: 1;
+      }
+
+      .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .google-sign-in {
+        width: 100%;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .google-sign-in:hover {
+        transform: translateY(-2px);
+      }
+
+      .google-sign-in img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+      }
+
+      .divider {
+        text-align: center;
+        position: relative;
+        margin: 10px 0;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 42%;
+        height: 1px;
+        background: #ddd;
+      }
+
+      .divider::before { left: 0; }
+      .divider::after { right: 0; }
+
+      .divider span {
+        background: white;
+        padding: 0 10px;
+        color: #666;
+        font-size: 0.9rem;
+      }
+
+      .email-form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .login-input {
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.2s;
+      }
+
+      .login-input:focus {
+        outline: none;
+        border-color: #2B4C7E;
+      }
+
+      .login-button {
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #FF8C00;
+        color: white;
+      }
+
+      .login-button:hover {
+        background: #e67e00;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      @media (max-width: 480px) {
+        .login-panel {
+          width: 100%;
+          right: -100%;
+        }
+        
+        .login-bubble {
+          width: 100px;
+          height: 100px;
+          right: 20px;
+          bottom: 20px;
+          font-size: 0.9rem;
+        }
+      }
+
+      .forgot-password-link {
+        display: block;
+        text-align: center;
+        margin-top: 10px;
+        color: #2B4C7E;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+
+      .forgot-password-link:hover {
+        color: #FF8C00;
+        text-decoration: underline;
+      }
+
+      .pricing-comparison {
+        padding: 4rem 2rem;
+        background: #f8f9fa;
+      }
+
+      .comparison-title {
+        text-align: center;
+        font-size: 2.5rem;
+        color: #333;
+        margin-bottom: 3rem;
+      }
+
+      .plans-container {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        flex-wrap: wrap;
+      }
+
+      .plan-column {
+        flex: 1;
+        min-width: 300px;
+        max-width: 380px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+      }
+
+      .plan-column:hover {
+        transform: translateY(-5px);
+      }
+
+      .plan-column.featured {
+        transform: scale(1.05);
+        border: 2px solid #FF8C00;
+      }
+
+      .plan-column.featured:hover {
+        transform: scale(1.05) translateY(-5px);
+      }
+
+      .plan-header {
+        padding: 2rem;
+        text-align: center;
+        background: #fff;
+        border-bottom: 1px solid #eee;
+      }
+
+      .best-value {
+        background: #FF8C00;
+        color: white;
+        padding: 0.5rem;
+        position: relative;
+        margin: -2rem -2rem 1rem;
+        font-weight: 500;
+      }
+
+      .plan-header h3 {
+        font-size: 1.5rem;
+        color: #333;
+        margin: 0 0 1rem;
+      }
+
+      .price {
+        margin-bottom: 1.5rem;
+      }
+
+      .price .amount {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #2B4C7E;
+      }
+
+      .price .period {
+        color: #666;
+      }
+
+      .plan-cta {
+        background: #FF8C00;
+        color: white;
+        border: none;
+        padding: 0.8rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      .plan-cta:hover {
+        background: #e67e00;
+      }
+
+      .features-list {
+        padding: 2rem;
+      }
+
+      .features-list h4 {
+        color: #2B4C7E;
+        margin: 1.5rem 0 1rem;
+        font-size: 1.1rem;
+      }
+
+      .feature-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.8rem;
+        color: #666;
+      }
+
+      .checkmark {
+        color: #4CAF50;
+        font-weight: bold;
+      }
+
+      @media (max-width: 768px) {
+        .plans-container {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .plan-column {
+          width: 100%;
+          max-width: 100%;
+        }
+
+        .plan-column.featured {
+          transform: none;
+          order: -1;
+        }
+
+        .plan-column.featured:hover {
+          transform: translateY(-5px);
+        }
+      }
+
+      .services-overview {
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      }
+
+      .overview-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .overview-header {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .overview-header h2 {
+        font-size: 2.5rem;
+        color: #333;
+        margin-bottom: 1rem;
+      }
+
+      .overview-header p {
+        font-size: 1.2rem;
+        color: #666;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .service-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+
+      .service-card {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+        transition: transform 0.3s ease;
+      }
+
+      .service-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .card-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+      }
+
+      .card-icon i {
+        color: white;
+        font-size: 30px;
+      }
+
+      .service-card h3 {
+        color: #333;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+      }
+
+      .service-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1.5rem;
+      }
+
+      .service-card li {
+        color: #666;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+      }
+
+      .action-btn {
+        background: none;
+        border: 2px solid #FF8C00;
+        color: #FF8C00;
+        padding: 0.8rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .action-btn:hover {
+        background: #FF8C00;
+        color: white;
+      }
+
+      .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 3rem;
+      }
+
+      .primary-action {
+        background: #FF8C00;
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .primary-action:hover {
+        background: #e67e00;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+
+      .secondary-action {
+        background: #2B4C7E;
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .secondary-action:hover {
+        background: #1f3a5f;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+
+      @media (max-width: 768px) {
+        .service-cards {
+          grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .primary-action,
+        .secondary-action {
+          width: 100%;
+        }
+      }
+
+      .comparison-section {
+        padding: 4rem 2rem;
+        background: #f8f9fa;
+      }
+
+      .comparison-container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .comparison-title {
+        text-align: center;
+        font-size: 2.5rem;
+        color: #333;
+        margin-bottom: 3rem;
+      }
+
+      .comparison-table {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        overflow: hidden;
+      }
+
+      .table-header {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        background: #fff;
+        border-bottom: 2px solid #eee;
+      }
+
+      .feature-column {
+        padding: 2rem;
+      }
+
+      .plan-column {
+        padding: 2rem;
+        text-align: center;
+        position: relative;
+      }
+
+      .plan-column.popular {
+        background: rgba(255,140,0,0.05);
+        border: 2px solid #FF8C00;
+      }
+
+      .popular-tag {
+        background: #FF8C00;
+        color: white;
+        padding: 0.5rem 1rem;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 0 0 8px 8px;
+        font-weight: 500;
+      }
+
+      .plan-column h3 {
+        margin: 1rem 0;
+        color: #333;
+        font-size: 1.5rem;
+      }
+
+      .price {
+        font-size: 2rem;
+        color: #2B4C7E;
+        font-weight: bold;
+        margin: 1rem 0;
+      }
+
+      .price span {
+        font-size: 1rem;
+        color: #666;
+        font-weight: normal;
+      }
+
+      .plan-button {
+        background: #FF8C00;
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+      }
+
+      .plan-button:hover {
+        background: #e67e00;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      .table-body {
+        padding: 2rem;
+      }
+
+      .feature-category {
+        margin-bottom: 2rem;
+      }
+
+      .feature-category h4 {
+        color: #2B4C7E;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eee;
+      }
+
+      .feature-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        padding: 1rem 0;
+        align-items: center;
+      }
+
+      .feature-name {
+        color: #666;
+      }
+
+      .feature-check {
+        text-align: center;
+        color: #4CAF50;
+        font-weight: bold;
+      }
+
+      @media (max-width: 768px) {
+        .comparison-section {
+          padding: 2rem 1rem;
+        }
+
+        .table-header,
+        .feature-row {
+          grid-template-columns: 2fr 1fr;
+        }
+
+        .plan-column:not(.popular) {
+          display: none;
+        }
+
+        .feature-check:not(:nth-child(2)) {
+          display: none;
+        }
+      }
+
+      .comparison-chart {
+        padding: 4rem 2rem;
+        background: #f8f9fa;
+      }
+
+      .chart-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        overflow: hidden;
+      }
+
+      .chart-title {
+        text-align: center;
+        font-size: 2.5rem;
+        color: #333;
+        margin: 2rem 0;
+      }
+
+      .plans-header {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+        padding: 2rem;
+        background: #fff;
+        border-bottom: 2px solid #eee;
+      }
+
+      .plan-type {
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .plan-type h3 {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 1rem;
+      }
+
+      .trial-badge {
+        background: #4CAF50;
+        color: white;
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
+      .commission {
+        color: #2B4C7E;
+        font-weight: 500;
+      }
+
+      .features-table {
+        padding: 2rem;
+      }
+
+      .feature-category {
+        margin-bottom: 2rem;
+      }
+
+      .feature-category h4 {
+        color: #2B4C7E;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eee;
+      }
+
+      .feature-row {
+        display: grid;
+        grid-template-columns: 2fr repeat(3, 1fr);
+        padding: 1rem 0;
+        align-items: center;
+      }
+
+      .feature-name {
+        color: #666;
+      }
+
+      .check {
+        text-align: center;
+        color: #4CAF50;
+        font-weight: bold;
+      }
+
+      .plan-actions {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+        padding: 2rem;
+        background: #f8f9fa;
+      }
+
+      .plan-button {
+        background: #FF8C00;
+        color: white;
+        border: none;
+        padding: 1rem;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .plan-button:hover {
+        background: #e67e00;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      @media (max-width: 768px) {
+        .plans-header,
+        .feature-row {
+          grid-template-columns: 2fr 1fr;
+        }
+
+        .plan-type:not(:first-child),
+        .feature-row > *:not(:first-child):not(:nth-child(2)) {
+          display: none;
+        }
+
+        .plan-actions {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="top-nav">
+      <img src="images/str-solutions-by-smart-stays-intl-high-resolution-logo-transparent.png" alt="STR Solutions Logo" class="logo">
+      
+      <div class="nav-links">
+        <a href="services.html" class="nav-link">Services</a>
+        <a href="notifications.html" class="nav-link">Notifications</a>
+        <a href="#" onclick="checkLoginBeforeInbox()" class="nav-link">Inbox</a>
+        <a href="settings.html" class="nav-link">Settings</a>
+      </div>
+
+      <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </nav>
+
+    <div class="mobile-menu">
+      <button class="mobile-menu-close" onclick="toggleMobileMenu()">×</button>
+      <div class="mobile-nav-links">
+        <a href="services.html" class="mobile-nav-link">Services</a>
+        <a href="notifications.html" class="mobile-nav-link">Notifications</a>
+        <a href="#" onclick="checkLoginBeforeInbox()" class="mobile-nav-link">Inbox</a>
+        <a href="settings.html" class="mobile-nav-link">Settings</a>
+      </div>
+    </div>
+
+    <header class="header">
+      <div class="header-title">
+        <h1>STR SOLUTIONS</h1>
+      </div>
+      
+      <div class="header-content">
+        <div class="left-section">
+          <div class="auth-section">
+            <input type="email" placeholder="Login with email" id="emailInput">
+            <button class="go-button" onclick="handleEmailLogin()">Go</button>
+            <div class="auth-divider">or</div>
+            <button class="google-auth-button" onclick="handleGoogleAuth()">
+                <img src="images/google-icon.svg" alt="Google Icon" class="google-icon">
+                <span>Continue with Google</span>
+            </button>
+            <a href="#" class="signup-link" onclick="handleEmailSignup(event)">Sign up</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Keep the login bubble -->
+      <div class="login-bubble" onclick="toggleLoginPanel()">
+          <img src="images/use-icon.png" alt="User Icon">
+          <span>Login/Signup</span>
+          <span>Chat/Support</span>
+      </div>
+    </header>
+
+    <!-- Add Review Carousel Widget -->
+    <div id="shapo-widget-88fc3c172fb1850a636e"></div>
+    <script id="shapo-embed-js" type="text/javascript" src="https://cdn.shapo.io/js/embed.js" defer></script>
+
+    <!-- Platform Listing Section -->
+    <h2 class="platform-heading">Get listed on every major platform</h2>
+    <img src="images/66d0748dd6dc5bff1fd5e02c8d62712b_1200_80.webp" alt="STR Solutions Features" class="secondary-image">
+
+    <!-- Comparison Chart Section -->
+    <section class="comparison-chart" id="pricing">
+      <div class="chart-container">
+        <h2 class="chart-title">Choose Your Perfect Plan</h2>
+        
+        <div class="plans-header">
+          <div class="plan-type side-hustle">
+            <h3>Side Hustle</h3>
+            <div class="trial-badge">60 DAYS FREE TRIAL</div>
+          </div>
+          <div class="plan-type pro">
+            <h3>Pro</h3>
+            <div class="commission">15% Commission</div>
+          </div>
+          <div class="plan-type multiunit">
+            <h3>Multiunit Manager</h3>
+            <div class="commission">3% Commission</div>
+          </div>
+        </div>
+
+        <div class="features-table">
+          <!-- Distribution -->
+          <div class="feature-category">
+            <h4>Distribution</h4>
+            <div class="feature-row">
+              <span class="feature-name">STR Solutions (Direct Marketing)</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+            </div>
+            <div class="feature-row">
+              <span class="feature-name">STR Solutions Booking Platform</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+            </div>
+            <div class="feature-row">
+              <span class="feature-name">Dashboard and Ical Set up</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+            </div>
+            <div class="feature-row">
+              <span class="feature-name">STR Solutions Social Media</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+            </div>
+            <div class="feature-row">
+              <span class="feature-name">Booking.com</span>
+              <span>-</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+            </div>
+          </div>
+
+          <!-- Online Performance Enhancement -->
+          <div class="feature-category">
+            <h4>Online Performance Enhancement</h4>
+            <div class="feature-row">
+              <span class="feature-name">Rate Optimization with Algorithm</span>
+              <span>-</span>
+              <span class="check">✓</span>
+              <span class="check">✓</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="plan-actions">
+          <button class="plan-button side-hustle" onclick="location.href='#contact'">Start Free Trial</button>
+          <button class="plan-button pro" onclick="location.href='#contact'">Get Started</button>
+          <button class="plan-button multiunit" onclick="location.href='#contact'">Contact Sales</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services Overview Section -->
+    <section class="services-overview">
+      <div class="overview-container">
+        <div class="overview-header">
+          <h2>Comprehensive STR Management Solutions</h2>
+          <p>Transform your property management experience with our all-inclusive services</p>
+        </div>
+
+        <div class="service-cards">
+          <div class="service-card">
+            <div class="card-icon" style="background: #FF8C00;">
+              <i class="material-icons">business</i>
+            </div>
+            <h3>Direct Marketing</h3>
+            <ul>
+              <li>STR Solutions Booking Platform</li>
+              <li>Dashboard and full Set-up</li>
+              <li>Social Media Management</li>
+            </ul>
+            <button class="action-btn" onclick="location.href='#pricing'">Learn More</button>
+          </div>
+
+          <div class="service-card">
+            <div class="card-icon" style="background: #2B4C7E;">
+              <i class="material-icons">trending_up</i>
+            </div>
+            <h3>Performance Enhancement</h3>
+            <ul>
+              <li>Rate Optimization with AlgorithmIQ</li>
+              <li>Weekly Rate Management</li>
+              <li>Occupancy Optimization</li>
+            </ul>
+            <button class="action-btn" onclick="location.href='#pricing'">Learn More</button>
+          </div>
+
+          <div class="service-card">
+            <div class="card-icon" style="background: #4CAF50;">
+              <i class="material-icons">support_agent</i>
+            </div>
+            <h3>Guest Services</h3>
+            <ul>
+              <li>24/7 App Communication</li>
+              <li>Pre-arrival Support</li>
+              <li>On-Stay Assistance</li>
+            </ul>
+            <button class="action-btn" onclick="location.href='#pricing'">Learn More</button>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="primary-action" onclick="location.href='https://calendly.com/strsolutionsinc/introductory-meeting'">
+            Schedule a Consultation
+          </button>
+          <button class="secondary-action" onclick="location.href='#pricing'">
+            View Pricing Plans
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Add this div for the notification -->
+    <div id="loginNotification" class="notification-popup">
+        Please sign in first to access your inbox
+    </div>
+
+    <!-- Login Bubble Window -->
+    <div id="loginChatWindow" class="login-chat-window">
+        <div class="chat-header">
+            <h3>Welcome to STR Solutions</h3>
+            <button class="close-button" onclick="toggleLoginWindow()">×</button>
+        </div>
+        <div class="chat-body">
+            <div class="chat-message">
+                <div class="message-bubble">
+                    Please sign in to continue
+                </div>
+            </div>
+            <div class="login-options">
+                <button class="google-login-button" onclick="handleGoogleAuth()">
+                    <img src="images/branding_guide_do_1.png" alt="Sign in with Google">
+                </button>
+                <div class="divider">
+                    <span>or use email</span>
+                </div>
+                <div class="email-login">
+                    <input type="email" placeholder="Email" id="chatEmailInput">
+                    <input type="password" placeholder="Password" id="chatPasswordInput">
+                    <button class="email-submit" onclick="handleChatEmailLogin()">Login</button>
+                    <button class="email-submit signup" onclick="handleChatEmailSignup()">Sign Up</button>
+                    <a href="#" class="forgot-password-link" onclick="handleChatForgotPassword()">Forgot Password?</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add slide-out login panel -->
+    <div class="login-panel" id="loginPanel">
+        <div class="login-panel-header">
+            <h2>Welcome to STR Solutions</h2>
+            <button class="close-button" onclick="toggleLoginPanel()">×</button>
+        </div>
+        <div class="login-panel-content">
+            <div class="login-form">
+                <button class="google-sign-in" onclick="handleGoogleAuth()">
+                    <img src="images/branding_guide_do_1.png" alt="Sign in with Google">
+                </button>
+                
+                <div class="divider">
+                    <span>or use email</span>
+                </div>
+                
+                <div class="email-form">
+                    <input type="email" placeholder="Email" class="login-input" id="loginEmailInput">
+                    <input type="password" placeholder="Password" class="login-input" id="loginPasswordInput">
+                    <button class="login-button" onclick="handleEmailLogin()">Login</button>
+                    <button class="login-button signup" onclick="handleEmailSignup()">Sign Up</button>
+                    <a href="#" class="forgot-password-link" onclick="handleForgotPassword()">Forgot Password?</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function checkLoginBeforeInbox() {
+            // Check if user is logged in (you can modify this based on your actual login check)
+            const isLoggedIn = localStorage.getItem('userEmail'); // or however you're tracking login status
+            
+            if (!isLoggedIn) {
+                // Show notification
+                const notification = document.getElementById('loginNotification');
+                notification.style.display = 'block';
+                
+                // Hide notification after 3 seconds
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+                
+                // Focus on email input
+                document.getElementById('emailInput').focus();
+            } else {
+                // If logged in, proceed to inbox
+                window.location.href = 'inbox.html';
+            }
+        }
+
+        function toggleLoginPanel() {
+            const panel = document.getElementById('loginPanel');
+            panel.classList.toggle('active');
+        }
+
+        function handleEmailLogin() {
+            const email = document.getElementById('loginEmailInput').value;
+            const password = document.getElementById('loginPasswordInput').value;
+            
+            if (!email || !password) {
+                showErrorNotification('Please enter both email and password');
+                return;
+            }
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    localStorage.setItem('userEmail', email);
+                    showSuccessNotification('Successfully logged in!');
+                    toggleLoginPanel();
+                    updateUIForLoggedInUser(user);
+                })
+                .catch((error) => {
+                    console.error('Email login error:', error);
+                    showErrorNotification('Login failed. Please check your credentials.');
+                });
+        }
+
+        function handleEmailSignup() {
+            const email = document.getElementById('loginEmailInput').value;
+            const password = document.getElementById('loginPasswordInput').value;
+            
+            if (!email || !password) {
+                showErrorNotification('Please enter both email and password');
+                return;
+            }
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    localStorage.setItem('userEmail', email);
+                    showSuccessNotification('Account created successfully!');
+                    toggleLoginPanel();
+                    updateUIForLoggedInUser(user);
+                })
+                .catch((error) => {
+                    console.error('Signup error:', error);
+                    showErrorNotification('Signup failed. ' + error.message);
+                });
+        }
+
+        function handleGoogleAuth() {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider)
+                .then((result) => {
+                    const user = result.user;
+                    localStorage.setItem('userEmail', user.email);
+                    localStorage.setItem('userName', user.displayName);
+                    localStorage.setItem('userPhoto', user.photoURL);
+                    showSuccessNotification('Successfully logged in with Google!');
+                    toggleLoginPanel();
+                    updateUIForLoggedInUser(user);
+                })
+                .catch((error) => {
+                    console.error('Google auth error:', error);
+                    showErrorNotification('Google login failed: ' + error.message);
+                });
+        }
+
+        function showSuccessNotification(message) {
+            const notification = document.getElementById('loginNotification');
+            notification.textContent = message;
+            notification.style.backgroundColor = '#4CAF50';
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function showErrorNotification(message) {
+            const notification = document.getElementById('loginNotification');
+            notification.textContent = message;
+            notification.style.backgroundColor = '#f44336';
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function toggleLoginWindow() {
+            const chatWindow = document.getElementById('loginChatWindow');
+            if (chatWindow.style.display === 'none' || !chatWindow.style.display) {
+                chatWindow.style.display = 'block';
+            } else {
+                chatWindow.style.display = 'none';
+            }
+        }
+
+        function handleChatEmailLogin() {
+            const email = document.getElementById('chatEmailInput').value;
+            const password = document.getElementById('chatPasswordInput').value;
+            
+            if (!email || !password) {
+                showErrorNotification('Please enter both email and password');
+                return;
+            }
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    localStorage.setItem('userEmail', email);
+                    showSuccessNotification('Successfully logged in!');
+                    toggleLoginWindow();
+                    updateUIForLoggedInUser(user);
+                })
+                .catch((error) => {
+                    console.error('Email login error:', error);
+                    showErrorNotification('Login failed. Please check your credentials.');
+                });
+        }
+
+        function handleChatEmailSignup() {
+            const email = document.getElementById('chatEmailInput').value;
+            const password = document.getElementById('chatPasswordInput').value;
+            
+            if (!email || !password) {
+                showErrorNotification('Please enter both email and password');
+                return;
+            }
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    localStorage.setItem('userEmail', email);
+                    showSuccessNotification('Account created successfully!');
+                    toggleLoginWindow();
+                    updateUIForLoggedInUser(user);
+                })
+                .catch((error) => {
+                    console.error('Signup error:', error);
+                    showErrorNotification('Signup failed. ' + error.message);
+                });
+        }
+
+        function handleChatForgotPassword() {
+            const email = document.getElementById('chatEmailInput').value;
+            
+            if (!email) {
+                showErrorNotification('Please enter your email address');
+                return;
+            }
+
+            const auth = getAuth();
+            sendPasswordResetEmail(auth, email)
+                .then(() => {
+                    showSuccessNotification('Password reset email sent! Please check your inbox.');
+                })
+                .catch((error) => {
+                    console.error('Password reset error:', error);
+                    showErrorNotification('Failed to send reset email. ' + error.message);
+                });
+        }
+
+        // Update the login bubble click handler
+        document.querySelector('.login-bubble').onclick = function() {
+            toggleLoginWindow();
+        };
+
+        function handleForgotPassword() {
+            const email = document.getElementById('loginEmailInput').value;
+            
+            if (!email) {
+                showErrorNotification('Please enter your email address');
+                return;
+            }
+
+            const auth = getAuth();
+            sendPasswordResetEmail(auth, email)
+                .then(() => {
+                    showSuccessNotification('Password reset email sent! Please check your inbox.');
+                })
+                .catch((error) => {
+                    console.error('Password reset error:', error);
+                    showErrorNotification('Failed to send reset email. ' + error.message);
+                });
+        }
+
+        function toggleMobileMenu() {
+            const mobileMenu = document.querySelector('.mobile-menu');
+            mobileMenu.classList.toggle('active');
+        }
+
+        // Add scroll effect for navigation
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('.top-nav');
+            const logo = document.querySelector('.logo');
+            
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+                logo.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+                logo.classList.remove('scrolled');
+            }
+        });
+    </script>
+  </body>
+</html>

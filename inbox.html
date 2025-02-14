@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inbox - ISTR Solutions</title>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCDJaWXTmFRq5TOff-4ppA_2xbRIIqgH4U",
+            authDomain: "str-client-portal.firebaseapp.com",
+            projectId: "str-client-portal",
+            storageBucket: "str-client-portal.firebasestorage.app",
+            messagingSenderId: "326303222389",
+            appId: "1:326303222389:web:9f0fdd8c7172d1f292c63c",
+            measurementId: "G-PEE007ZG94"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendMessage');
+            const chatMessages = document.getElementById('chatMessages');
+
+            // Check authentication state
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    window.location.href = '/';
+                    return;
+                }
+
+                console.log("User authenticated:", user.email);
+
+                // Create or get conversation document
+                const conversationRef = doc(db, "conversations", user.uid);
+                
+                try {
+                    const docSnap = await getDoc(conversationRef);
+                    if (!docSnap.exists()) {
+                        await setDoc(conversationRef, {
+                            userEmail: user.email,
+                            createdAt: new Date(),
+                            lastMessage: ''
+                        });
+                        console.log("Created new conversation document");
+                    }
+
+                    // Listen for messages
+                    const messagesRef = collection(conversationRef, "messages");
+                    const q = query(messagesRef, orderBy("timestamp", "asc"));
+
+                    onSnapshot(q, (snapshot) => {
+                        chatMessages.innerHTML = '';
+                        snapshot.forEach((doc) => {
+                            const message = doc.data();
+                            displayMessage(message, user.uid);
+                        });
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    });
+
+                    // Send message handler
+                    sendButton.onclick = async () => {
+                        const messageText = messageInput.value.trim();
+                        if (!messageText) return;
+
+                        try {
+                            const messagesRef = collection(conversationRef, "messages");
+                            await addDoc(messagesRef, {
+                                text: messageText,
+                                sender: user.uid,
+                                timestamp: new Date(),
+                                read: false
+                            });
+                            
+                            // Update conversation last message
+                            await setDoc(conversationRef, {
+                                lastMessage: messageText,
+                                lastMessageTime: new Date()
+                            }, { merge: true });
+
+                            messageInput.value = '';
+                            console.log("Message sent successfully");
+                        } catch (error) {
+                            console.error("Error sending message:", error);
+                        }
+                    };
+
+                    // Handle Enter key
+                    messageInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            sendButton.click();
+                        }
+                    });
+
+                } catch (error) {
+                    console.error("Error setting up chat:", error);
+                }
+            });
+        });
+
+        // Helper function to display messages
+        function displayMessage(message, currentUserId) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${message.sender === currentUserId ? 'sent' : 'received'}`;
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.textContent = message.text;
+            
+            const time = document.createElement('div');
+            time.className = 'message-time';
+            time.textContent = new Date(message.timestamp.toDate()).toLocaleTimeString();
+            
+            messageElement.appendChild(content);
+            messageElement.appendChild(time);
+            
+            document.getElementById('chatMessages').appendChild(messageElement);
+        }
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Roboto, Helvetica, Arial, sans-serif;
+            background-color: #ECEFF1;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            width: 150px;
+            height: auto;
+            transition: opacity 0.2s;
+        }
+
+        .logo:hover {
+            opacity: 0.8;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            color: #333;
+            margin: 0;
+        }
+
+        .request-call {
+            background: #ff8c00;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .request-call:hover {
+            background: #e67e00;
+        }
+
+        .chat-container {
+            display: flex;
+            height: calc(100vh - 100px);
+            margin: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .chat-sidebar {
+            width: 280px;
+            background: #f5f5f5;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+        }
+
+        .chat-tab {
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            margin-top: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chat-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .chat-tab.active {
+            border-left: 3px solid #ff8c00;
+        }
+
+        .chat-tab h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+
+        .chat-tab p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            margin: 15px 0;
+            max-width: 70%;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sent {
+            margin-left: auto;
+            align-items: flex-end;
+        }
+
+        .received {
+            align-items: flex-start;
+        }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .sent .message-content {
+            background: #ff8c00;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .received .message-content {
+            background: #f0f0f0;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.75em;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+
+        .sent .message-time {
+            color: #666;
+        }
+
+        .received .message-time {
+            color: #666;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 15px 20px;
+            background: #f9f9f9;
+            border-top: 1px solid #ddd;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #ff8c00;
+        }
+
+        .chat-input button {
+            background: #ff8c00;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-input button:hover {
+            background: #e67e00;
+            transform: translateY(-1px);
+        }
+
+        .chat-input button:active {
+            transform: translateY(0);
+        }
+
+        .typing-indicator {
+            padding: 8px;
+            font-size: 0.9em;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Add smooth scrollbar for chat messages */
+        .chat-messages {
+            scrollbar-width: thin;
+            scrollbar-color: #ff8c00 #f0f0f0;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f0f0f0;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: #ff8c00;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo-section">
+            <a href="/">
+                <img src="images/str-solutions-by-smart-stays-intl-high-resolution-logo-transparent.png" alt="ISTR Solutions Logo" class="logo">
+            </a>
+            <h1 class="page-title">Inbox</h1>
+        </div>
+        <button class="request-call" onclick="window.location.href='https://calendly.com/strsolutionsinc/introductory-meeting'">Request Call</button>
+    </header>
+
+    <div class="chat-container">
+        <div class="chat-sidebar">
+            <h3>Active Chats</h3>
+            <div class="chat-tab active">
+                <h4>STR Team</h4>
+                <p>Support Team</p>
+                <small>Online</small>
+            </div>
+        </div>
+
+        <div class="chat-main">
+            <div class="chat-header">
+                <h2>STR Team</h2>
+                <span class="online-status">Online</span>
+            </div>
+
+            <div id="chatMessages" class="chat-messages">
+                <!-- Messages will be inserted here -->
+            </div>
+
+            <div class="chat-input">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Type your message here..."
+                    autocomplete="off"
+                >
+                <button id="sendMessage">
+                    Send
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
