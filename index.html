@@ -166,7 +166,6 @@
                 loginBubble.innerHTML = `
                     <img src="images/use-icon.png" alt="User Icon">
                     <span>Login/Signup</span>
-                    <span>Chat/Support</span>
                 `;
             }
 
@@ -1872,7 +1871,6 @@
       <div class="nav-links">
         <a href="services.html" class="nav-link">Services</a>
         <a href="notifications.html" class="nav-link">Notifications</a>
-        <a href="#" onclick="checkLoginBeforeInbox()" class="nav-link">Inbox</a>
         <a href="settings.html" class="nav-link">Settings</a>
       </div>
 
@@ -1888,7 +1886,6 @@
       <div class="mobile-nav-links">
         <a href="services.html" class="mobile-nav-link">Services</a>
         <a href="notifications.html" class="mobile-nav-link">Notifications</a>
-        <a href="#" onclick="checkLoginBeforeInbox()" class="mobile-nav-link">Inbox</a>
         <a href="settings.html" class="mobile-nav-link">Settings</a>
       </div>
     </div>
@@ -1917,7 +1914,6 @@
       <div class="login-bubble" onclick="toggleLoginPanel()">
           <img src="images/use-icon.png" alt="User Icon">
           <span>Login/Signup</span>
-          <span>Chat/Support</span>
       </div>
     </header>
 
@@ -2105,12 +2101,12 @@
     </section>
 
     <!-- Add this div for the notification -->
-    <div id="loginNotification" class="notification-popup">
+    <!-- <div id="loginNotification" class="notification-popup">
         Please sign in first to access your inbox
-    </div>
+    </div> -->
 
     <!-- Login Bubble Window -->
-    <div id="loginChatWindow" class="login-chat-window">
+    <!-- <div id="loginChatWindow" class="login-chat-window">
         <div class="chat-header">
             <h3>Welcome to STR Solutions</h3>
             <button class="close-button" onclick="toggleLoginWindow()">×</button>
@@ -2137,7 +2133,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <!-- Add slide-out login panel -->
     <div class="login-panel" id="loginPanel">
@@ -2167,28 +2163,6 @@
     </div>
 
     <script>
-        function checkLoginBeforeInbox() {
-            // Check if user is logged in (you can modify this based on your actual login check)
-            const isLoggedIn = localStorage.getItem('userEmail'); // or however you're tracking login status
-            
-            if (!isLoggedIn) {
-                // Show notification
-                const notification = document.getElementById('loginNotification');
-                notification.style.display = 'block';
-                
-                // Hide notification after 3 seconds
-                setTimeout(() => {
-                    notification.style.display = 'none';
-                }, 3000);
-                
-                // Focus on email input
-                document.getElementById('emailInput').focus();
-            } else {
-                // If logged in, proceed to inbox
-                window.location.href = 'inbox.html';
-            }
-        }
-
         function toggleLoginPanel() {
             const panel = document.getElementById('loginPanel');
             panel.classList.toggle('active');
