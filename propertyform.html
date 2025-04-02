@@ -405,91 +405,97 @@
   </div>
 
   <!-- Firebase scripts -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script>
-    // Your Firebase config
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Your web app's Firebase configuration
     const firebaseConfig = {
-      apiKey: "AIzaSy...",
-      authDomain: "smartstayfirebase.firebaseapp.com",
-      projectId: "smartstayfirebase",
-      storageBucket: "smartstayfirebase.appspot.com",
-      messagingSenderId: "1003958242334",
-      appId: "1:1003958242334:web:14cbba09831d164a55320f"
+      apiKey: "AIzaSyCDJaWXTmFRq5TOff-4ppA_2xbRIIqgH4U",
+      authDomain: "str-client-portal.firebaseapp.com",
+      projectId: "str-client-portal",
+      storageBucket: "str-client-portal.firebasestorage.app",
+      messagingSenderId: "326303222389",
+      appId: "1:326303222389:web:8c3207491e99383f92c63c",
+      measurementId: "G-2E4K4GYYJT"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
+    // Make the submit button work with the new Firebase configuration
     document.querySelector('.submit-btn').onclick = async function submitForm() {
       // Basic validation
       const requiredFields = ['agencyUid', 'name', 'description', 'line1', 'city', 'state', 'postalCode', 'country', 'longitude', 'latitude', 'baseGuests', 'maxGuests', 'minimumStay', 'maximumStay', 'checkInTimeStart', 'checkInTimeEnd', 'checkOutTime', 'currency', 'dailyRate', 'taxRate', 'cleaningFee', 'propertyType', 'listingType', 'roomType', 'isActive', 'bedrooms', 'beds', 'bathrooms', 'numberOfFloors', 'areaSize', 'areaUnitType'];
-      for (let field of requiredFields) {
-        const value = document.getElementById(field).value;
-        if (!value && field !== 'externalId') {
-          alert(`Please fill out the ${field} field.`);
-          return;
-        }
-      }
-
-      const formData = {
-        agencyUid: document.getElementById('agencyUid').value,
-        externalId: document.getElementById('externalId').value || null,
-        name: document.getElementById('name').value.trim(),
-        description: document.getElementById('description').value.trim(),
-
-        address: {
-          line1: document.getElementById('line1').value.trim(),
-          line2: document.getElementById('line2').value.trim() || "",
-          city: document.getElementById('city').value.trim(),
-          state: document.getElementById('state').value.trim(),
-          postalCode: document.getElementById('postalCode').value.trim(),
-          country: document.getElementById('country').value.trim(), // e.g., "CA"
-          latitude: parseFloat(document.getElementById('latitude').value),
-          longitude: parseFloat(document.getElementById('longitude').value),
-        },
-
-        availability: {
-          baseGuests: parseInt(document.getElementById('baseGuests').value, 10),
-          maxGuests: parseInt(document.getElementById('maxGuests').value, 10),
-          minimumStay: parseInt(document.getElementById('minimumStay').value, 10),
-          maximumStay: parseInt(document.getElementById('maximumStay').value, 10),
-          checkInTimeStart: parseInt(document.getElementById('checkInTimeStart').value, 10),
-          checkInTimeEnd: parseInt(document.getElementById('checkInTimeEnd').value, 10),
-          checkOutTime: parseInt(document.getElementById('checkOutTime').value, 10)
-        },
-
-        pricing: {
-          currency: document.getElementById('currency').value.trim(),
-          dailyRate: parseFloat(document.getElementById('dailyRate').value),
-          taxRate: parseFloat(document.getElementById('taxRate').value),
-          cleaningFee: parseFloat(document.getElementById('cleaningFee').value),
-        },
-
-        propertyType: document.getElementById('propertyType').value,
-        listingType: document.getElementById('listingType').value,
-        roomType: document.getElementById('roomType').value,
-        isActive: (document.getElementById('isActive').value === "true"),
-
-        bedrooms: parseInt(document.getElementById('bedrooms').value, 10),
-        beds: parseInt(document.getElementById('beds').value, 10),
-        bathrooms: parseFloat(document.getElementById('bathrooms').value),
-        numberOfFloors: parseInt(document.getElementById('numberOfFloors').value, 10),
-
-        area: {
-          size: parseFloat(document.getElementById('areaSize').value),
-          unitType: document.getElementById('areaUnitType').value
-        }
-      };
-
+      
       try {
-        // Send to Firestore (leads collection)
-        await db.collection("leads").add(formData);
-        alert("Property submitted successfully!");
+        for (let field of requiredFields) {
+          const value = document.getElementById(field).value;
+          if (!value && field !== 'externalId') {
+            throw new Error(`Please fill out the ${field} field.`);
+          }
+        }
+
+        const formData = {
+          createdAt: new Date(),
+          agencyUid: document.getElementById('agencyUid').value,
+          externalId: document.getElementById('externalId').value || null,
+          name: document.getElementById('name').value.trim(),
+          description: document.getElementById('description').value.trim(),
+
+          address: {
+            line1: document.getElementById('line1').value.trim(),
+            line2: document.getElementById('line2').value.trim() || "",
+            city: document.getElementById('city').value.trim(),
+            state: document.getElementById('state').value.trim(),
+            postalCode: document.getElementById('postalCode').value.trim(),
+            country: document.getElementById('country').value.trim(),
+            latitude: parseFloat(document.getElementById('latitude').value),
+            longitude: parseFloat(document.getElementById('longitude').value),
+          },
+
+          availability: {
+            baseGuests: parseInt(document.getElementById('baseGuests').value, 10),
+            maxGuests: parseInt(document.getElementById('maxGuests').value, 10),
+            minimumStay: parseInt(document.getElementById('minimumStay').value, 10),
+            maximumStay: parseInt(document.getElementById('maximumStay').value, 10),
+            checkInTimeStart: parseInt(document.getElementById('checkInTimeStart').value, 10),
+            checkInTimeEnd: parseInt(document.getElementById('checkInTimeEnd').value, 10),
+            checkOutTime: parseInt(document.getElementById('checkOutTime').value, 10)
+          },
+
+          pricing: {
+            currency: document.getElementById('currency').value.trim(),
+            dailyRate: parseFloat(document.getElementById('dailyRate').value),
+            taxRate: parseFloat(document.getElementById('taxRate').value),
+            cleaningFee: parseFloat(document.getElementById('cleaningFee').value),
+          },
+
+          propertyType: document.getElementById('propertyType').value,
+          listingType: document.getElementById('listingType').value,
+          roomType: document.getElementById('roomType').value,
+          isActive: (document.getElementById('isActive').value === "true"),
+
+          bedrooms: parseInt(document.getElementById('bedrooms').value, 10),
+          beds: parseInt(document.getElementById('beds').value, 10),
+          bathrooms: parseFloat(document.getElementById('bathrooms').value),
+          numberOfFloors: parseInt(document.getElementById('numberOfFloors').value, 10),
+
+          area: {
+            size: parseFloat(document.getElementById('areaSize').value),
+            unitType: document.getElementById('areaUnitType').value
+          }
+        };
+
+        // Save to properties collection
+        const docRef = await addDoc(collection(db, "properties"), formData);
+        console.log("Property document written with ID: ", docRef.id);
+        alert("Property submitted successfully! Document ID: " + docRef.id);
         document.getElementById('propertyForm').reset();
       } catch (error) {
         console.error("Error submitting property:", error);
-        alert("There was an error submitting the property. Please try again.");
+        alert("Error: " + error.message);
       }
     };
 
